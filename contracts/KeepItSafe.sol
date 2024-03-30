@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract KeepItSafe {
+import "./XRC4907.sol";
+
+contract KeepItSafe is XRC4907 {
+
     struct Institute {
         string instituteName;
         string instituteLocation;
@@ -19,7 +22,7 @@ contract KeepItSafe {
     struct DocumentRequest {
         address student;
         string docType;
-        bool exists; // To track if request exists or has been deleted
+        bool exists;
     }
 
     error KeepItSafe__InstituteAlreadyExists();
@@ -43,6 +46,10 @@ contract KeepItSafe {
     mapping(string => address) public s_instituteAddress;
     mapping(address => DocumentRequest[]) public s_requests;
     mapping(address => address[]) public s_instituteStudents;
+
+    constructor() XRC4907(){
+        
+    }
 
     function addInstitute(string memory _instituteName, string memory _instituteLocation, string memory _instituteDomain) public {
         if(s_institutes[msg.sender].registered == true) {
@@ -133,5 +140,16 @@ contract KeepItSafe {
                 break;
             }
         }
+    }
+
+    function getAllStudentsRequests() public view returns(DocumentRequest[] memory){
+        if(s_roles[msg.sender]!=Roles.INSTITUTE){
+            revert KeepItSafe__OnlyForInstituteRole();
+        }
+        DocumentRequest[] memory requests = new DocumentRequest[](s_requests[msg.sender].length);
+        for(uint256 i=0; i<s_requests[msg.sender].length; i++){
+            requests[i] = s_requests[msg.sender][i];
+        }
+        return requests;
     }
 }
