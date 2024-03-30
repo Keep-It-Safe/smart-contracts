@@ -47,10 +47,6 @@ contract KeepItSafe is XRC4907 {
     mapping(address => DocumentRequest[]) public s_requests;
     mapping(address => address[]) public s_instituteStudents;
 
-    constructor() XRC4907(){
-        
-    }
-
     function addInstitute(string memory _instituteName, string memory _instituteLocation, string memory _instituteDomain) public {
         if(s_institutes[msg.sender].registered == true) {
             revert KeepItSafe__InstituteAlreadyExists();
@@ -143,8 +139,8 @@ contract KeepItSafe is XRC4907 {
     }
 
     function getAllStudentsRequests() public view returns(DocumentRequest[] memory){
-        if(s_roles[msg.sender]!=Roles.INSTITUTE){
-            revert KeepItSafe__OnlyForInstituteRole();
+        if(s_roles[msg.sender]!=Roles.STUDENT){
+            revert KeepItSafe__OnlyForStudentRole();
         }
         DocumentRequest[] memory requests = new DocumentRequest[](s_requests[msg.sender].length);
         for(uint256 i=0; i<s_requests[msg.sender].length; i++){
