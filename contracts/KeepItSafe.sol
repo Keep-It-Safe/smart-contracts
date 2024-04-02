@@ -40,12 +40,14 @@ contract KeepItSafe is XRC4907 {
         STUDENT
     }
 
-    mapping(address => Roles) public s_roles;
-    mapping(address => Institute) public s_institutes;
-    mapping(address => Student) public s_students;
-    mapping(string => address) public s_instituteAddress;
-    mapping(address => DocumentRequest[]) public s_requests;
-    mapping(address => address[]) public s_instituteStudents;
+    mapping(address => Roles) private s_roles;
+    mapping(address => Institute) private s_institutes;
+    mapping(address => Student) private s_students;
+    mapping(string => address) private s_instituteAddress;
+    mapping(address => DocumentRequest[]) private s_requests;
+    mapping(address => address[]) private s_instituteStudents;
+
+    constructor(){}
 
     function addInstitute(string memory _instituteName, string memory _instituteLocation, string memory _instituteDomain) public {
         if(s_institutes[msg.sender].registered == true) {
@@ -117,7 +119,6 @@ contract KeepItSafe is XRC4907 {
             }
         }
 
-        // Create a new array to remove empty elements
         DocumentRequest[] memory filteredRequests = new DocumentRequest[](index);
         for (uint256 i = 0; i < index; i++) {
             filteredRequests[i] = requests[i];
@@ -126,7 +127,7 @@ contract KeepItSafe is XRC4907 {
         return filteredRequests;
     }
 
-    function approveDocumentRequest(address _studentAddress, string memory _docType) public {
+    function approveDocumentRequest(address _studentAddress, string memory _docType, string memory _ipfsHash, uint64 _expiresIn) public {
         if(s_roles[msg.sender]!=Roles.INSTITUTE){
             revert KeepItSafe__OnlyForInstituteRole();
         }
@@ -136,6 +137,14 @@ contract KeepItSafe is XRC4907 {
                 break;
             }
         }
+        // Here StudentAddress will be the owner
+        if(_expiresIn==0){
+            super.mint(_studentAddress, _studentAddress, _docType, _ipfsHash, 0);
+        }
+        // Here Institute will be the original owner and will be minting the Doc to the student for a particular time.
+        else{
+            super.mint(msg.sender, _studentAddress, _docType, _ipfsHash, _expiresIn);
+        }
     }
 
     function getAllStudentsRequests() public view returns(DocumentRequest[] memory){
@@ -144,8 +153,17 @@ contract KeepItSafe is XRC4907 {
         }
         DocumentRequest[] memory requests = new DocumentRequest[](s_requests[msg.sender].length);
         for(uint256 i=0; i<s_requests[msg.sender].length; i++){
-            requests[i] = s_requests[msg.sender][i];
+            if(s_requests[msg.sender][i].exists){
+                requests[i] = s_requests[msg.sender][i];
+            }
         }
         return requests;
+    }
+
+    function getStudentDocs() public view returns(StudentDocs[] memory){
+        if(s_roles[msg.sender]!=Roles.STUDENT){
+            revert KeepItSafe__OnlyForStudentRole();
+        }
+        return super.getDocsForAStudent(msg.sender);
     }
 }

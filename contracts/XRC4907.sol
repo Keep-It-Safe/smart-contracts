@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./IERC4907.sol";
 import "./XRC4907Storage.sol";
 import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
@@ -9,7 +10,7 @@ import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/
 contract XRC4907 is ERC721, IERC4907, XRC4907Storage, ERC721URIStorage {
 
     constructor() ERC721("KeepItSafe", "KiS") {
-        tokenIdCounter = 0;
+        tokenIdCounter = 1;
     }
 
     /// @notice Set the user and expiration timestamp of an NFT
@@ -87,32 +88,70 @@ contract XRC4907 is ERC721, IERC4907, XRC4907Storage, ERC721URIStorage {
         return super.tokenURI(tokenId);
     }
 
-    function mint(address to, string memory _docType, string memory _ipfsHash, uint64 expiresIn) public {
+    function mint(address _owner, address _to, string memory _docType, string memory _ipfsHash, uint64 _expiresIn) public {
         uint256 tokenId = tokenIdCounter;
         tokenIdCounter++;
-        tokenIdToDocsMinted[tokenId] = StudentDocs(_docType, _ipfsHash, expiresIn, tokenId, to);
-        userToTokenIds[to].push(tokenId);
-        _mint(to, tokenId);
-        if(expiresIn == 0){
+        tokenIdToDocsMinted[tokenId] = StudentDocs(_docType, _ipfsHash, _expiresIn, tokenId, _owner);
+        if(_expiresIn == 0){
+            _mint(_to, tokenId);
             _setTokenURI(tokenId, _ipfsHash);
+            lockedStatus[tokenId] = true;
+            if(keccak256(abi.encodePacked(_docType))==keccak256(abi.encodePacked("lor"))){
+                userToTokenIds[_owner][0] = tokenId;
+            }
+            else if(keccak256(abi.encodePacked(_docType))==keccak256(abi.encodePacked("gradesheet"))){
+                userToTokenIds[_owner][1] = tokenId;
+            }
+            else if(keccak256(abi.encodePacked(_docType))==keccak256(abi.encodePacked("degree"))){
+                userToTokenIds[_owner][2] = tokenId;
+            }
+        }
+        else{
+            _mint(_owner, tokenId);
+            setUser(tokenId, _to, _expiresIn);
+            if(keccak256(abi.encodePacked(_docType))==keccak256(abi.encodePacked("idcard"))){
+                userToTokenIds[_to][3] = tokenId;
+            }
         }
     }
-    
-    function getStudentDocs(address student) public view returns(StudentDocs[] memory){
-        uint256[] memory tokenIds = userToTokenIds[student];
-        StudentDocs[] memory studentDocs = new StudentDocs[](tokenIds.length);
-        for(uint256 i = 0; i < tokenIds.length; i++){
-            studentDocs[i] = tokenIdToDocsMinted[tokenIds[i]];
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public virtual override(IERC721, ERC721) {
+        if(lockedStatus[tokenId]==true){
+            revert XRC4907Storage__TokenIdLocked();
         }
-        return studentDocs;
+        super.safeTransferFrom(from, to, tokenId);
     }
 
-    function getStudentDocsCount(address student) public view returns(uint256){
-        return userToTokenIds[student].length;
+    function getStudentDocById(uint256 _tokenId) public view returns(StudentDocs memory){
+        return tokenIdToDocsMinted[_tokenId];
     }
 
-    function getStudentDocById(uint256 tokenId) public view returns(StudentDocs memory){
-        return tokenIdToDocsMinted[tokenId];
+    function time() public view returns (uint256) {
+        return block.timestamp;
     }
 
+    function hasDocExpired(address _student) public returns(bool) {
+        uint256 tokenId = userToTokenIds[_student][3];
+        if(userOf(tokenId)==_student){
+            userToTokenIds[_student][3] = 0;
+            return true;
+        }
+        return false;
+    }
+
+    function getDocsForAStudent(address _student) public view returns(StudentDocs[] memory) {
+        StudentDocs[] memory studentDoc = new StudentDocs[](4);
+        uint256 index = 0;
+        for(uint256 i = 0; i < 4; i++){
+            if(userToTokenIds[_student][i]!=0){
+                studentDoc[index] = tokenIdToDocsMinted[userToTokenIds[_student][i]];
+                index++;
+            }
+        }
+        return studentDoc;
+    }
 }

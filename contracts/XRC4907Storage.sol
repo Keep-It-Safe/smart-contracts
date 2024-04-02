@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 contract XRC4907Storage {
 
-    uint256 tokenIdCounter;
+    uint256 public tokenIdCounter;
     
     struct StudentDocs {
         string docType;
@@ -13,7 +13,9 @@ contract XRC4907Storage {
         address user;
     }
 
-    mapping(uint256 => StudentDocs) public tokenIdToDocsMinted;
-    mapping(address => uint256[]) public userToTokenIds;
-}
+    mapping(uint256 => StudentDocs) internal tokenIdToDocsMinted;
+    mapping(address => uint256[4]) internal userToTokenIds;
+    mapping(uint256 => bool) internal lockedStatus;
 
+    error XRC4907Storage__TokenIdLocked();
+}
