@@ -49,6 +49,10 @@ contract KeepItSafe is XRC4907 {
 
     constructor(){}
 
+    function getInstituteAddress(string memory _domain) public view returns(address) {
+        return s_instituteAddress[_domain];
+    }
+
     function addInstitute(string memory _instituteName, string memory _instituteLocation, string memory _instituteDomain) public {
         if(s_institutes[msg.sender].registered == true) {
             revert KeepItSafe__InstituteAlreadyExists();
