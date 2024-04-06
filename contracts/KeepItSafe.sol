@@ -170,4 +170,17 @@ contract KeepItSafe is XRC4907 {
         }
         return super.getDocsForAStudent(msg.sender);
     }
+
+    function getAllStudentsOfInstitute(address _instituteAddress) public view returns(Student[] memory){
+        if(s_roles[msg.sender]!=Roles.INSTITUTE){
+            revert KeepItSafe__OnlyForInstituteRole();
+        }
+        // address[] memory allAddress = new address[](s_instituteStudents[msg.sender].length);
+        Student[] memory allStudents = new Student[](s_instituteStudents[msg.sender].length);
+
+        for(uint256 i=0; i<s_instituteStudents[msg.sender].length; i++){
+            allStudents[i] = getStudentDetails(s_instituteStudents[msg.sender][i]);
+        }
+        return allStudents;
+    }
 }
