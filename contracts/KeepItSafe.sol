@@ -137,7 +137,7 @@ contract KeepItSafe is XRC4907 {
         }
         for(uint i=0; i<s_requests[_studentAddress].length; i++){
             if(s_requests[_studentAddress][i].exists && keccak256(abi.encodePacked(s_requests[_studentAddress][i].docType)) == keccak256(abi.encodePacked(_docType))){
-                s_requests[_studentAddress][i].exists = false; // Mark as deleted
+                s_requests[_studentAddress][i].exists = false;
                 break;
             }
         }
@@ -171,7 +171,7 @@ contract KeepItSafe is XRC4907 {
         return super.getDocsForAStudent(msg.sender);
     }
 
-    function getAllStudentsOfInstitute(address _instituteAddress) public view returns(Student[] memory){
+    function getAllStudentsOfInstitute() public view returns(Student[] memory){
         if(s_roles[msg.sender]!=Roles.INSTITUTE){
             revert KeepItSafe__OnlyForInstituteRole();
         }
@@ -182,5 +182,25 @@ contract KeepItSafe is XRC4907 {
             allStudents[i] = getStudentDetails(s_instituteStudents[msg.sender][i]);
         }
         return allStudents;
+    }
+
+    function rejectDocumentRequest(address _studentAddress, string memory _docType) public {
+        if(s_roles[msg.sender]!=Roles.INSTITUTE){
+            revert KeepItSafe__OnlyForInstituteRole();
+        }
+        for(uint i=0; i<s_requests[_studentAddress].length; i++){
+            if(s_requests[_studentAddress][i].exists && keccak256(abi.encodePacked(s_requests[_studentAddress][i].docType)) == keccak256(abi.encodePacked(_docType))){
+                s_requests[_studentAddress][i].exists = false;
+                break;
+            }
+        }
+        // // Here StudentAddress will be the owner
+        // if(_expiresIn==0){
+        //     super.mint(_studentAddress, _studentAddress, _docType, _ipfsHash, 0);
+        // }
+        // // Here Institute will be the original owner and will be minting the Doc to the student for a particular time.
+        // else{
+        //     super.mint(msg.sender, _studentAddress, _docType, _ipfsHash, _expiresIn);
+        // }
     }
 }
